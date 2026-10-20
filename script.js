@@ -13,31 +13,9 @@
 
   const engine = new CadybaraEngine(canvas);
 
-  const DEFAULT_CODE = `// cadybara · live pseudo-CAD
-// named colors use the PICO-8 palette
-
-let s = 60
-let w = 200
-
-color blue
-rect 100 100 w w
-
-color red
-circle 200 200 s
-arc 200 200 (s * 1.5) 0 180
-
-color green
-polyline 100 100 150 50 250 50 300 100
-
-layer details color yellow
-circle 200 200 20
-circle 200 200 8
-
-// angles are degrees
-let a = 45
-line 200 200 (200 + 100 * cos(a)) (200 + 100 * sin(a))
-
+  const DEFAULT_CODE = `# cadybara · ₍ᐢ-(ｪ)-ᐢ₎
 grid on
+text 100 100 "hello cadybara"
 `;
 
   // ---------- syntax data ----------
