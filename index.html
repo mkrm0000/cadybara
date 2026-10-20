@@ -11,9 +11,11 @@
     <!-- LEFT: editor -->
     <section class="editor-pane">
       <header class="pane-header">
-        <span class="title">✏️ pseudo‑cad</span>
+        <span class="title">✏️ cadybara</span>
         <div class="header-actions">
-          <button class="btn" id="helpBtn" title="show syntax help">? help</button>
+          <button class="btn" id="helpBtn" title="syntax reference">? help</button>
+          <button class="btn" id="exportSvgBtn" title="download SVG">⬇ svg</button>
+          <button class="btn" id="exportPngBtn" title="download PNG">⬇ png</button>
           <button class="btn" id="resetBtn" title="reset to example">⟲ reset</button>
           <button class="btn primary" id="autoRenderBtn" title="toggle auto-render">🟢 auto</button>
         </div>
@@ -26,7 +28,7 @@
 
       <footer class="status-bar">
         <span id="statusMsg" class="ok">ready</span>
-        <span class="status-right">live preview</span>
+        <span class="status-right" id="statusRight">zoom 100% · 0 shapes</span>
       </footer>
     </section>
 
@@ -34,15 +36,17 @@
     <section class="canvas-pane">
       <header class="pane-header">
         <span class="title">🖌️ viewport</span>
-        <span class="badge">real‑time</span>
+        <div class="header-actions">
+          <span class="badge" id="viewBadge">100%</span>
+          <button class="btn" id="fitBtn" title="fit view (Ctrl+0)">⊡ fit</button>
+        </div>
       </header>
-      <div class="canvas-container">
+      <div class="canvas-container" id="canvasContainer">
         <canvas id="cadCanvas" width="800" height="800"></canvas>
       </div>
     </section>
   </div>
 
-  <!-- help modal -->
   <div class="modal-backdrop" id="helpModal">
     <div class="modal">
       <div class="modal-header">
@@ -58,7 +62,10 @@
     </div>
   </div>
 
+  <script src="parser.js"></script>
   <script src="cad.js"></script>
+  <script src="export.js"></script>
+  <script src="storage.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
