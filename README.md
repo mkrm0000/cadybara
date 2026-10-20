@@ -140,6 +140,179 @@ Quoted hex also works: `color "#ff004d"`
 - 📖 **Help modal** — full syntax reference, generated from `syn.json`
 - 🧭 **X/Y axes + origin marker** — always know where `(0, 0)` is
 
+
+```cady
+// ─────────────────────────────────────────────────────────────
+// cadybara · full-feature showcase
+// every command, every palette color, variables, layers, groups
+// ─────────────────────────────────────────────────────────────
+
+// ── variables & expressions ──────────────────────────────────
+let cx = 400              // center x
+let cy = 400              // center y
+let r  = 250              // base radius
+let a  = 45               // angle in degrees
+let tau2 = tau / 2        // half turn
+
+// ── grid ─────────────────────────────────────────────────────
+grid on
+
+// ═════════════════════════════════════════════════════════════
+// LAYER 1 · background ring using all 16 palette colors
+// ═════════════════════════════════════════════════════════════
+layer palette
+
+color black
+arc cx cy r 180 360
+
+color darkblue
+arc cx cy r-20 180 360
+
+color darkpurple
+arc cx cy r-40 180 360
+
+color darkgreen
+arc cx cy r-60 180 360
+
+color brown
+arc cx cy r-80 180 360
+
+color darkgray
+arc cx cy r-100 180 360
+
+color lightgray
+arc cx cy r-120 180 360
+
+color white
+arc cx cy r-140 180 360
+
+color red
+arc cx cy r-160 180 360
+
+color orange
+arc cx cy r-180 180 360
+
+color yellow
+arc cx cy r-200 180 360
+
+color green
+arc cx cy r-220 180 360
+
+color blue
+arc cx cy r-240 180 360
+
+color lavender
+arc cx cy r-260 180 360
+
+color pink
+arc cx cy r-280 180 360
+
+color peach
+arc cx cy r-300 180 360
+
+// ═════════════════════════════════════════════════════════════
+// LAYER 2 · geometric primitives inside a group
+// ═════════════════════════════════════════════════════════════
+layer shapes color blue
+
+group frame
+  color blue
+  rect 200 200 400 400
+
+  color red
+  circle cx cy 150
+
+  color green
+  fillcircle cx cy 40
+
+  color yellow
+  line 200 200 600 600
+  line 600 200 200 600
+
+  color lavender
+  polyline 200 400 300 300 400 400 500 300 600 400
+
+  color pink
+  text 290 180 "cadybara" 28
+
+  color orange
+  text 330 460 "full showcase" 14
+endgroup
+
+// ═════════════════════════════════════════════════════════════
+// LAYER 3 · parametric spirograph using trig + expressions
+// ═════════════════════════════════════════════════════════════
+layer trig color peach
+
+let i1 = 0
+let i2 = 30
+let i3 = 60
+let i4 = 90
+let i5 = 120
+let i6 = 150
+let i7 = 180
+let i8 = 210
+let i9 = 240
+let i10 = 270
+let i11 = 300
+let i12 = 330
+
+line cx cy cx + 200 * cos(i1)  cy + 200 * sin(i1)
+line cx cy cx + 200 * cos(i2)  cy + 200 * sin(i2)
+line cx cy cx + 200 * cos(i3)  cy + 200 * sin(i3)
+line cx cy cx + 200 * cos(i4)  cy + 200 * sin(i4)
+line cx cy cx + 200 * cos(i5)  cy + 200 * sin(i5)
+line cx cy cx + 200 * cos(i6)  cy + 200 * sin(i6)
+line cx cy cx + 200 * cos(i7)  cy + 200 * sin(i7)
+line cx cy cx + 200 * cos(i8)  cy + 200 * sin(i8)
+line cx cy cx + 200 * cos(i9)  cy + 200 * sin(i9)
+line cx cy cx + 200 * cos(i10) cy + 200 * sin(i10)
+line cx cy cx + 200 * cos(i11) cy + 200 * sin(i11)
+line cx cy cx + 200 * cos(i12) cy + 200 * sin(i12)
+
+// ═════════════════════════════════════════════════════════════
+// LAYER 4 · math functions demo
+// ═════════════════════════════════════════════════════════════
+layer math color lightgray
+
+let s1 = cy + 40 * sin(0)
+let s2 = cy + 40 * sin(60)
+let s3 = cy + 40 * sin(120)
+let s4 = cy + 40 * sin(180)
+let s5 = cy + 40 * sin(240)
+let s6 = cy + 40 * sin(300)
+let s7 = cy + 40 * sin(360)
+
+polyline 220 s1 260 s2 300 s3 340 s4 380 s5 420 s6 460 s7
+
+circle 200 + 50 * sqrt(4) 700 - 100 * abs(-1) 8
+circle 300 + 50 * round(1.4) 700 - 100 * ceil(1.1) 8
+circle 400 + 50 * floor(2.9) 700 - 100 * max(2, 5) 8
+circle 500 + 50 * min(3, 7) 700 - 100 * pow(2, 2) 8
+
+
+
+// ═════════════════════════════════════════════════════════════
+// LAYER 5 · the one that gets hidden (toggle demo)
+// ═════════════════════════════════════════════════════════════
+layer ephemeral color white
+
+text 180 80 "this layer can be hidden" 14
+text 180 100 "change 'hide ephemeral' below" 12
+
+// ── try changing this to `show ephemeral` ────────────────────
+hide ephemeral
+
+// ═════════════════════════════════════════════════════════════
+// comments
+// ─────────────────────────────────────────────────────────────
+// this is a full-line comment
+// and this one uses the '#' marker at the start of a line:
+# this line is also a comment
+
+// clear (commented out — uncomment to wipe everything except layers)
+// clear
+```
 ---
 
 ## 🏗️ Architecture
