@@ -39,6 +39,131 @@ body {
 }
 
 
+/* ---- logo popup ---- */
+.logo-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px;
+}
+.logo-popup-backdrop.open,
+.logo-popup-backdrop.closing {
+  display: flex;
+}
+.logo-popup-backdrop.open {
+  animation: logo-fade-in 0.18s ease-out forwards;
+}
+.logo-popup-backdrop.closing {
+  animation: logo-fade-out 0.16s ease-in forwards;
+}
+
+@keyframes logo-fade-in {
+  from { background: rgba(0, 0, 0, 0); backdrop-filter: blur(0); }
+  to   { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); }
+}
+@keyframes logo-fade-out {
+  from { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); }
+  to   { background: rgba(0, 0, 0, 0); backdrop-filter: blur(0); }
+}
+
+.logo-popup {
+  position: relative;
+  background: #1a1b1e;
+  border: 1px solid #2e2f33;
+  border-radius: 14px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+  padding: 40px 48px 36px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+}
+.logo-popup-backdrop.open .logo-popup {
+  animation: logo-pop-in 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2) forwards;
+}
+.logo-popup-backdrop.closing .logo-popup {
+  animation: logo-pop-out 0.16s ease-in forwards;
+}
+
+@keyframes logo-pop-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes logo-pop-out {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.90); }
+}
+
+.logo-popup-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.logo-popup-icon {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 12px;
+  margin-bottom: 6px;
+}
+.logo-popup h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #e0e0e0;
+  letter-spacing: 0.5px;
+}
+.logo-popup p {
+  font-size: 0.9rem;
+  color: #9a9a9a;
+}
+.logo-popup .logo-popup-hint {
+  font-size: 0.78rem;
+  color: #6a6a6a;
+  font-family: 'Fira Code', monospace;
+  margin-top: 4px;
+}
+
+/* close button */
+.logo-popup-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #3a3b40;
+  background: #232428;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.logo-popup-close:hover {
+  background: #3a3b40;
+  border-color: #5a5b60;
+}
+.logo-popup-close p {
+  margin: 0;
+  font-family: 'Fira Code', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: #b0b0b0;
+  line-height: 1;
+  text-transform: lowercase;
+}
+.logo-popup-close:hover p { color: #fff; }
+
+
+
+
+
 .pane-header {
   flex: 0 0 auto;
   padding: 10px 16px;
