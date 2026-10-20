@@ -141,6 +141,9 @@ Quoted hex also works: `color "#ff004d"`
 - 🧭 **X/Y axes + origin marker** — always know where `(0, 0)` is
 
 
+<details>
+<summary><strong>📜 Full-feature showcase</strong> (click to expand — every command, color, layer, group)</summary>
+
 ```cady
 // ─────────────────────────────────────────────────────────────
 // cadybara · full-feature showcase
@@ -313,6 +316,10 @@ hide ephemeral
 // clear (commented out — uncomment to wipe everything except layers)
 // clear
 ```
+
+</details>
+
+
 ---
 
 ## 🏗️ Architecture
