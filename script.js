@@ -1,11 +1,11 @@
-// script.js – UI logic, live update, help modal, intellisense
+// script.js – UI logic, live update, auto-render toggle, help modal, intellisense
 
 (function () {
   const canvas = document.getElementById('cadCanvas');
   const editor = document.getElementById('codeEditor');
   const statusMsg = document.getElementById('statusMsg');
   const resetBtn = document.getElementById('resetBtn');
-  const runBtn = document.getElementById('runBtn');
+  const autoRenderBtn = document.getElementById('autoRenderBtn');
   const helpBtn = document.getElementById('helpBtn');
   const helpModal = document.getElementById('helpModal');
   const closeHelpBtn = document.getElementById('closeHelpBtn');
@@ -38,6 +38,9 @@ circle 250 250 40
 grid on
 `;
 
+  // ---- auto-render state ----
+  let autoRender = true;
+
   // ---- syntax data (loaded from syn.json) ----
   let SYNTAX = { commands: [] };
   let syntaxLoaded = false;
@@ -49,7 +52,7 @@ grid on
       SYNTAX = await res.json();
       syntaxLoaded = true;
     } catch (e) {
-      // fallback minimal syntax so intellisense/help still works without server
+      // fallback minimal syntax so intellisense/help still works without a server
       SYNTAX = {
         commands: [
           { name: 'line', signature: 'line x1 y1 x2 y2', args: ['x1','y1','x2','y2'], description: 'Draw a line.', example: 'line 100 100 400 400' },
@@ -83,8 +86,24 @@ grid on
   }
 
   function debouncedUpdate() {
+    if (!autoRender) return; // frozen — skip keystroke renders
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(updateFromEditor, 120);
+  }
+
+  // ---- auto-render toggle ----
+  function setAutoRender(on) {
+    autoRender = on;
+    autoRenderBtn.classList.toggle('toggle-off', !on);
+    autoRenderBtn.textContent = on ? '🟢 auto' : '🔴 auto';
+    autoRenderBtn.title = on
+      ? 'auto-render is ON — click to freeze'
+      : 'auto-render is OFF — click to resume';
+    if (on) {
+      // catch up immediately when re-enabled
+      if (debounceTimer) clearTimeout(debounceTimer);
+      updateFromEditor();
+    }
   }
 
   // ---- init ----
@@ -92,11 +111,16 @@ grid on
     await loadSyntax();
     resetToDefault();
     bindEvents();
+    setAutoRender(true);
   }
 
   function resetToDefault() {
     editor.value = DEFAULT_CODE;
-    updateFromEditor();
+    if (autoRender) updateFromEditor();
+    else {
+      // still render once on reset so the canvas isn't stale from a previous file
+      updateFromEditor();
+    }
   }
 
   // ---- help modal ----
@@ -129,7 +153,7 @@ grid on
     html += '<tr><td class="cmd-name">//</td><td><div class="desc">line comment — anything after <code>//</code> is ignored.</div></td></tr>';
     html += '<tr><td class="cmd-name">#</td><td><div class="desc">alternative comment marker (at start of line).</div></td></tr>';
     html += '<tr><td class="cmd-name">tab</td><td><div class="desc">inserts two spaces.</div></td></tr>';
-    html += '<tr><td class="cmd-name">ctrl+enter</td><td><div class="desc">force re‑render immediately.</div></td></tr>';
+    html += '<tr><td class="cmd-name">ctrl+enter</td><td><div class="desc">force re-render immediately (works even when auto-render is off).</div></td></tr>';
     html += '</table>';
 
     helpBody.innerHTML = html;
@@ -149,8 +173,8 @@ grid on
     visible: false,
     items: [],
     activeIndex: 0,
-    startPos: 0,   // char index where current word starts
-    endPos: 0,     // char index where cursor is
+    startPos: 0,
+    endPos: 0,
   };
 
   function escapeHtml(s) {
@@ -169,7 +193,6 @@ grid on
   }
 
   function positionIntellisense() {
-    // approximate caret position using a mirror div technique
     const text = editor.value.slice(0, editor.selectionStart);
     const lines = text.split('\n');
     const currentLine = lines.length - 1;
@@ -180,7 +203,6 @@ grid on
     const paddingTop = parseFloat(style.paddingTop) || 20;
     const paddingLeft = parseFloat(style.paddingLeft) || 20;
 
-    // measure text width using a hidden canvas
     const canvasMeasure = positionIntellisense._canvas || (positionIntellisense._canvas = document.createElement('canvas'));
     const mctx = canvasMeasure.getContext('2d');
     mctx.font = `${style.fontSize} ${style.fontFamily}`;
@@ -192,7 +214,6 @@ grid on
     let left = editorRect.left - wrapRect.left + paddingLeft + textWidth;
     let top = editorRect.top - wrapRect.top + paddingTop + currentLine * lineHeight + lineHeight;
 
-    // clamp
     const maxLeft = wrapRect.width - 280;
     if (left > maxLeft) left = maxLeft;
     if (left < 8) left = 8;
@@ -224,7 +245,6 @@ grid on
 
     positionIntellisense();
 
-    // bind clicks
     intellisense.querySelectorAll('.item').forEach(el => {
       el.addEventListener('mousedown', (e) => {
         e.preventDefault();
@@ -279,7 +299,6 @@ grid on
       return;
     }
 
-    // if exactly one match and the word is already complete, hide
     if (matches.length === 1 && matches[0].name.toLowerCase() === lower) {
       hideIntellisense();
       return;
@@ -299,7 +318,6 @@ grid on
     const len = intelliState.items.length;
     if (!len) return;
     intelliState.activeIndex = (intelliState.activeIndex + delta + len) % len;
-    // re-render active highlight without rebuilding whole list
     intellisense.querySelectorAll('.item').forEach((el, i) => {
       el.classList.toggle('active', i === intelliState.activeIndex);
     });
@@ -313,7 +331,6 @@ grid on
     });
 
     editor.addEventListener('keydown', (e) => {
-      // intellisense navigation
       if (intelliState.visible) {
         if (e.key === 'ArrowDown') {
           e.preventDefault();
@@ -337,7 +354,7 @@ grid on
         }
       }
 
-      // ctrl+enter force render
+      // ctrl+enter always forces a render (works even when auto-render is off)
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         if (debounceTimer) clearTimeout(debounceTimer);
@@ -345,7 +362,6 @@ grid on
         hideIntellisense();
       }
 
-      // tab inserts two spaces
       if (e.key === 'Tab') {
         e.preventDefault();
         const s = editor.selectionStart;
@@ -357,7 +373,6 @@ grid on
       }
     });
 
-    // hide intellisense on blur / click elsewhere
     editor.addEventListener('blur', () => {
       setTimeout(hideIntellisense, 120);
     });
@@ -370,12 +385,8 @@ grid on
       if (intelliState.visible) positionIntellisense();
     });
 
-    // buttons
-    runBtn.addEventListener('click', () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      updateFromEditor();
-      hideIntellisense();
-    });
+    // auto-render toggle
+    autoRenderBtn.addEventListener('click', () => setAutoRender(!autoRender));
 
     resetBtn.addEventListener('click', () => {
       resetToDefault();
