@@ -23,6 +23,22 @@ body {
 .editor-pane { background: #1a1b1e; border-right: 2px solid #2e2f33; }
 .canvas-pane { background: #0f1012; }
 
+.pane-header .title {
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pane-header .logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  object-fit: contain;
+  display: inline-block;
+}
+
+
 .pane-header {
   flex: 0 0 auto;
   padding: 10px 16px;

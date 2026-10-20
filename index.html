@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>cadybara · live pseudo CAD</title>
+  <title>cadybara</title>
+
+  <link rel="icon" type="image/png" href="icon-bg.png" />
+  <link rel="apple-touch-icon" href="icon-bg.png" />
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,7 +15,10 @@
     <!-- LEFT: editor -->
     <section class="editor-pane">
       <header class="pane-header">
-        <span class="title">✏️ cadybara</span>
+        <span class="title">
+          <img src="icon-bg.png" alt="" class="logo" />
+          cadybara
+        </span>
         <div class="header-actions">
           <button class="btn" id="helpBtn" title="syntax reference">? help</button>
           <button class="btn" id="exportSvgBtn" title="download SVG">⬇ svg</button>
@@ -68,7 +75,7 @@
   <script src="storage.js"></script>
   <script src="script.js"></script>
   <script>
-    
+
   </script>
 </body>
 </html>
