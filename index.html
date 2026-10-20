@@ -4,380 +4,42 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>cadybara · live pseudo CAD</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
-      background: #1e1f22;
-      color: #e0e0e0;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    .app {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      height: 100vh;
-    }
-
-    /* editor panel */
-    .editor-pane {
-      display: flex;
-      flex-direction: column;
-      background: #1a1b1e;
-      border-right: 2px solid #2e2f33;
-      min-width: 0;
-      position: relative;
-    }
-
-    .pane-header {
-      padding: 16px 20px;
-      background: #0f1012;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      font-size: 1rem;
-      border-bottom: 1px solid #2e2f33;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .pane-header .badge {
-      font-size: 0.7rem;
-      background: #2e2f33;
-      padding: 4px 10px;
-      border-radius: 20px;
-      color: #b0b0b0;
-      font-weight: 400;
-    }
-
-    /* editor wrapper so we can position intellisense */
-    .editor-wrap {
-      flex: 1;
-      position: relative;
-      display: flex;
-      min-height: 0;
-    }
-
-    textarea {
-      flex: 1;
-      width: 100%;
-      resize: none;
-      background: #141518;
-      border: none;
-      outline: none;
-      color: #d4d4d4;
-      font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
-      font-size: 14px;
-      line-height: 1.6;
-      padding: 20px;
-      tab-size: 2;
-      caret-color: #6c9eff;
-      white-space: pre;
-      overflow: auto;
-    }
-
-    textarea::selection { background: #2a3a5a; }
-
-    /* intellisense popup */
-    #intellisense {
-      position: absolute;
-      display: none;
-      background: #232428;
-      border: 1px solid #3a3b40;
-      border-radius: 6px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-      min-width: 260px;
-      max-width: 420px;
-      z-index: 10;
-      font-family: 'Fira Code', monospace;
-      font-size: 13px;
-      overflow: hidden;
-    }
-
-    #intellisense .item {
-      padding: 6px 12px;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    #intellisense .item .cmd {
-      color: #6c9eff;
-      font-weight: 600;
-    }
-
-    #intellisense .item .sig {
-      color: #8a8a8a;
-      font-size: 12px;
-    }
-
-    #intellisense .item.active,
-    #intellisense .item:hover {
-      background: #2f3a52;
-    }
-
-    /* canvas panel */
-    .canvas-pane {
-      display: flex;
-      flex-direction: column;
-      background: #0f1012;
-    }
-
-    .canvas-container {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      overflow: hidden;
-    }
-
-    canvas {
-      background: #1a1b1e;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-      width: 100%;
-      height: 100%;
-      display: block;
-      image-rendering: crisp-edges;
-      border: 1px solid #2e2f33;
-    }
-
-    /* status bar */
-    .status-bar {
-      padding: 8px 20px;
-      background: #0a0b0d;
-      font-size: 0.75rem;
-      color: #7a7a7a;
-      border-top: 1px solid #2e2f33;
-      display: flex;
-      justify-content: space-between;
-      font-family: monospace;
-    }
-
-    .status-bar .ok { color: #6fbf6f; }
-    .status-bar .error { color: #e06c6c; }
-
-    /* buttons */
-    .btn {
-      background: #2a2b30;
-      border: none;
-      color: #d0d0d0;
-      padding: 6px 14px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.15s;
-      font-family: inherit;
-      border: 1px solid #3a3b40;
-    }
-
-    .btn:hover { background: #3a3b40; color: #fff; }
-    .btn:active { background: #4a4b50; }
-
-    .btn.primary {
-      background: #3a5a8c;
-      border-color: #4a6a9c;
-      color: #fff;
-    }
-    .btn.primary:hover { background: #4a6a9c; }
-
-    .btn.toggle-off {
-      background: #3a2a2a;
-      border-color: #5a3a3a;
-      color: #e0a0a0;
-    }
-    .btn.toggle-off:hover {
-      background: #4a3a3a;
-    }
-
-
-    .header-actions { display: flex; gap: 8px; align-items: center; }
-
-    /* quick reference */
-    .quick-ref {
-      background: #0a0b0d;
-      padding: 6px 20px;
-      font-size: 0.7rem;
-      color: #6a6a6a;
-      border-top: 1px solid #1e1f22;
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-      font-family: monospace;
-    }
-    .quick-ref span { color: #8a8a8a; }
-    .quick-ref code {
-      background: #1e1f22;
-      padding: 2px 8px;
-      border-radius: 4px;
-      color: #b0b0b0;
-    }
-
-    /* ---- help modal ---- */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(3px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      padding: 24px;
-    }
-    .modal-backdrop.open { display: flex; }
-
-    .modal {
-      background: #1a1b1e;
-      border: 1px solid #2e2f33;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 780px;
-      max-height: 85vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
-      overflow: hidden;
-    }
-
-    .modal-header {
-      padding: 16px 22px;
-      background: #0f1012;
-      border-bottom: 1px solid #2e2f33;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 600;
-    }
-
-    .modal-body {
-      padding: 20px 22px;
-      overflow: auto;
-    }
-
-    .modal-body h3 {
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #7a7a7a;
-      margin: 18px 0 8px;
-    }
-    .modal-body h3:first-child { margin-top: 0; }
-
-    .syn-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-family: 'Fira Code', monospace;
-      font-size: 13px;
-    }
-
-    .syn-table tr {
-      border-bottom: 1px solid #232428;
-    }
-    .syn-table tr:last-child { border-bottom: none; }
-
-    .syn-table td {
-      padding: 10px 8px;
-      vertical-align: top;
-    }
-
-    .syn-table .cmd-name {
-      color: #6c9eff;
-      font-weight: 600;
-      white-space: nowrap;
-      width: 60px;
-    }
-
-    .syn-table .sig {
-      color: #d4a04a;
-      white-space: nowrap;
-    }
-
-    .syn-table .desc {
-      color: #a0a0a0;
-      font-family: 'Segoe UI', sans-serif;
-      font-size: 12.5px;
-      line-height: 1.5;
-    }
-
-    .syn-table .example {
-      color: #6fbf6f;
-      font-size: 12px;
-      margin-top: 3px;
-    }
-
-    .modal-footer {
-      padding: 12px 22px;
-      border-top: 1px solid #2e2f33;
-      background: #0f1012;
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-
-    /* scrollbar */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #0f1012; }
-    ::-webkit-scrollbar-thumb { background: #2e2f33; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #3e3f44; }
-
-    @media (max-width: 800px) {
-      .app { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
-      .editor-pane { border-right: none; border-bottom: 2px solid #2e2f33; }
-    }
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app">
     <!-- LEFT: editor -->
-    <div class="editor-pane">
-      <div class="pane-header">
-        <span>✏️ pseudo‑cad</span>
+    <section class="editor-pane">
+      <header class="pane-header">
+        <span class="title">✏️ pseudo‑cad</span>
         <div class="header-actions">
           <button class="btn" id="helpBtn" title="show syntax help">? help</button>
           <button class="btn" id="resetBtn" title="reset to example">⟲ reset</button>
-          <button class="btn primary" id="autoRenderBtn" title="toggle auto-render">🟢 auto</button>        </div>
-      </div>
+          <button class="btn primary" id="autoRenderBtn" title="toggle auto-render">🟢 auto</button>
+        </div>
+      </header>
 
       <div class="editor-wrap">
         <textarea id="codeEditor" spellcheck="false" placeholder="write pseudo‑CAD commands..."></textarea>
         <div id="intellisense"></div>
       </div>
 
-      <div class="status-bar">
+      <footer class="status-bar">
         <span id="statusMsg" class="ok">ready</span>
-        <span>live preview</span>
-      </div>
-    </div>
+        <span class="status-right">live preview</span>
+      </footer>
+    </section>
 
     <!-- RIGHT: canvas -->
-    <div class="canvas-pane">
-      <div class="pane-header">
-        <span>🖌️ viewport</span>
+    <section class="canvas-pane">
+      <header class="pane-header">
+        <span class="title">🖌️ viewport</span>
         <span class="badge">real‑time</span>
-      </div>
+      </header>
       <div class="canvas-container">
         <canvas id="cadCanvas" width="800" height="800"></canvas>
       </div>
-      <div class="quick-ref">
-        <span>commands:</span>
-        <code>line x1 y1 x2 y2</code>
-        <code>circle cx cy r</code>
-        <code>rect x y w h</code>
-        <code>arc cx cy r start end</code>
-        <code>color #hex</code>
-        <code>clear</code>
-        <code>grid on/off</code>
-      </div>
-    </div>
+    </section>
   </div>
 
   <!-- help modal -->

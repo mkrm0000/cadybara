@@ -1,0 +1,296 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+  background: #1e1f22;
+  color: #e0e0e0;
+}
+
+/* --- app shell: fills viewport, no page scroll --- */
+.app {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 100vh;
+  min-height: 0;
+}
+
+/* --- panes: column flex with min-height:0 so children can shrink --- */
+.editor-pane,
+.canvas-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;              /* critical: allows flex children to scroll */
+  min-width: 0;
+  overflow: hidden;
+}
+
+.editor-pane {
+  background: #1a1b1e;
+  border-right: 2px solid #2e2f33;
+}
+
+.canvas-pane {
+  background: #0f1012;
+}
+
+/* --- headers/footers: fixed height, never shrink --- */
+.pane-header {
+  flex: 0 0 auto;
+  padding: 12px 18px;
+  background: #0f1012;
+  border-bottom: 1px solid #2e2f33;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.pane-header .title { font-weight: 600; letter-spacing: 0.3px; }
+
+.badge {
+  font-size: 0.7rem;
+  background: #2e2f33;
+  padding: 3px 10px;
+  border-radius: 20px;
+  color: #b0b0b0;
+  font-weight: 400;
+}
+
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+/* --- editor wrapper: flex:1, min-height:0 so it can shrink --- */
+.editor-wrap {
+  flex: 1 1 auto;
+  min-height: 0;              /* critical */
+  position: relative;
+  display: flex;
+}
+
+textarea {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  resize: none;
+  background: #141518;
+  border: none;
+  outline: none;
+  color: #d4d4d4;
+  font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 18px 20px;
+  tab-size: 2;
+  caret-color: #6c9eff;
+  white-space: pre;
+  overflow: auto;             /* textarea scrolls internally */
+}
+
+textarea::selection { background: #2a3a5a; }
+
+/* --- intellisense popup --- */
+#intellisense {
+  position: absolute;
+  display: none;
+  background: #232428;
+  border: 1px solid #3a3b40;
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  min-width: 260px;
+  max-width: 420px;
+  z-index: 10;
+  font-family: 'Fira Code', monospace;
+  font-size: 13px;
+  overflow: hidden;
+}
+#intellisense .item {
+  padding: 6px 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#intellisense .item .cmd { color: #6c9eff; font-weight: 600; }
+#intellisense .item .sig { color: #8a8a8a; font-size: 12px; }
+#intellisense .item.active,
+#intellisense .item:hover { background: #2f3a52; }
+
+/* --- status bar: fixed height --- */
+.status-bar {
+  flex: 0 0 auto;
+  padding: 6px 18px;
+  background: #0a0b0d;
+  border-top: 1px solid #2e2f33;
+  font-size: 0.72rem;
+  font-family: monospace;
+  color: #7a7a7a;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.status-bar .ok { color: #6fbf6f; }
+.status-bar .error { color: #e06c6c; }
+.status-right { color: #5a5a5a; }
+
+/* --- canvas area: flex:1 with centered canvas --- */
+.canvas-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: hidden;
+}
+
+canvas {
+  background: #1a1b1e;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  border: 1px solid #2e2f33;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+/* --- buttons --- */
+.btn {
+  background: #2a2b30;
+  border: 1px solid #3a3b40;
+  color: #d0d0d0;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: inherit;
+}
+.btn:hover { background: #3a3b40; color: #fff; }
+.btn:active { background: #4a4b50; }
+.btn.primary {
+  background: #3a5a8c;
+  border-color: #4a6a9c;
+  color: #fff;
+}
+.btn.primary:hover { background: #4a6a9c; }
+.btn.toggle-off {
+  background: #3a2a2a;
+  border-color: #5a3a3a;
+  color: #e0a0a0;
+}
+.btn.toggle-off:hover { background: #4a3a3a; }
+
+/* --- help modal --- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(3px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+.modal-backdrop.open { display: flex; }
+
+.modal {
+  background: #1a1b1e;
+  border: 1px solid #2e2f33;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 780px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+.modal-header {
+  flex: 0 0 auto;
+  padding: 14px 20px;
+  background: #0f1012;
+  border-bottom: 1px solid #2e2f33;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+.modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 18px 20px;
+  overflow: auto;
+}
+.modal-footer {
+  flex: 0 0 auto;
+  padding: 12px 20px;
+  border-top: 1px solid #2e2f33;
+  background: #0f1012;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* modal content styles */
+.modal-body h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #7a7a7a;
+  margin: 18px 0 8px;
+}
+.modal-body h3:first-child { margin-top: 0; }
+
+.syn-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Fira Code', monospace;
+  font-size: 13px;
+}
+.syn-table tr { border-bottom: 1px solid #232428; }
+.syn-table tr:last-child { border-bottom: none; }
+.syn-table td { padding: 9px 8px; vertical-align: top; }
+.syn-table .cmd-name {
+  color: #6c9eff;
+  font-weight: 600;
+  white-space: nowrap;
+  width: 60px;
+}
+.syn-table .sig { color: #d4a04a; white-space: nowrap; }
+.syn-table .desc {
+  color: #a0a0a0;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.syn-table .example { color: #6fbf6f; font-size: 12px; margin-top: 3px; }
+
+/* --- scrollbars --- */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2e2f33; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3e3f44; }
+
+/* --- responsive: stack vertically on small screens --- */
+@media (max-width: 800px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .editor-pane {
+    border-right: none;
+    border-bottom: 2px solid #2e2f33;
+  }
+}
