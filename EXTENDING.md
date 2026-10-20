@@ -12,8 +12,9 @@ Adding a new command touches **three files**:
 |------|-----------|
 | `cad.js` | Add a drawing method + a `case` in the `execute()` switch |
 | `syn.json` | Add a JSON entry so it appears in help + intellisense |
-| `script.js` | (optional) nothing — auto-picks up from `syn.json` |
-| `index.html` | (optional) add to the quick-reference bar |
+| `parser.js` | Add the keyword to `isStatementStart` and (if needed) a statement branch |
+
+Optionally, `script.js` can be extended if the command needs UI behavior.
 
 We'll use a real example: a **`polyline`** command that draws a chain of connected segments.
 
@@ -57,30 +58,84 @@ drawPolyline(points) {
 
 ## 2️⃣ Add a `case` in the `execute()` switch
 
-Still in `cad.js`. Inside `execute()`, find the `switch (cmd)` block. Add a new case:
+Still in `cad.js`. Inside `execute()`, find the `switch (st.type)` block. Add a new case:
 
 ```javascript
-case 'polyline': {
-  const pts = parts.slice(1).map(Number);
-  if (pts.length < 4) throw new Error('polyline needs at least x1 y1 x2 y2');
-  if (pts.length % 2 !== 0) throw new Error('polyline needs an even number of coordinates');
-  if (pts.some(isNaN)) throw new Error('polyline coordinates must be numbers');
-  this.drawPolyline(pts);
+case 'prim': {
+  const args = st.args.map(a => P.evalExpr(a, vars));
+  this.addShape({ type: st.name, args, color: this.currentColor });
   break;
 }
 ```
 
+Wait — that's the generic branch. **The primitives are already handled generically** via `addShape` + `drawShape`. So for a new primitive, the steps are actually:
+
+**a)** Add the keyword to the parser's primitive list in `parser.js` (see step 3).
+
+**b)** Add a `case` in `drawShape()` in `cad.js`:
+
+```javascript
+case 'polyline': {
+  if (s.args.length < 4) break;
+  ctx.beginPath();
+  ctx.moveTo(s.args[0], s.args[1]);
+  for (let i = 2; i < s.args.length; i += 2) ctx.lineTo(s.args[i], s.args[i + 1]);
+  ctx.stroke();
+  break;
+}
+```
+
+**c)** Add a bounds case in `computeBounds()` in `cad.js`:
+
+```javascript
+case 'polyline':
+  for (let i = 0; i < s.args.length; i += 2) add(s.args[i], s.args[i + 1]);
+  break;
+```
+
 ### Rules for the case block
 
-- **`cmd`** is already lowercased — match it in lowercase.
-- **`parts`** is the raw split line (`['polyline', '10', '10', ...]`).
-- **`args`** is `parts.slice(1).map(Number)` — handy for fixed-arity commands, but for variable-arity commands like `polyline` use `parts.slice(1)` directly so you can check length.
-- **`throw new Error('message')`** on bad input — the engine catches it and reports `line N: message` in the status bar.
+- **`s.args`** is already evaluated — it's an array of numbers.
+- **`s.color`** is already resolved via `normalizeColor`.
 - **Don't forget `break`** — without it, execution falls through.
+- **`computeBounds()` matters** — the `⊡ fit` button uses it.
 
 ---
 
-## 3️⃣ Add the entry to `syn.json`
+## 3️⃣ Register the keyword in `parser.js`
+
+Open `parser.js`. Two places:
+
+**a)** Add it to the primitive list in `parseProgram()`:
+
+```javascript
+if (['line', 'circle', 'rect', 'arc', 'polyline', 'fillcircle'].includes(kw)) {
+  state.i++;
+  const args = [];
+  while (tokens[state.i].type !== 'eof' &&
+         !(tokens[state.i].type === 'ident' && isStatementStart(tokens[state.i].value))) {
+    args.push(parseExpr(tokens, state));
+  }
+  stmts.push({ type: 'prim', name: kw, args, line: t.line, col: t.col });
+  continue;
+}
+```
+
+**b)** Add it to `isStatementStart()` so the parser knows where a statement ends:
+
+```javascript
+function isStatementStart(word) {
+  const kw = word.toLowerCase();
+  return ['let', 'layer', 'group', 'endgroup', 'hide', 'show', 'grid', 'clear',
+          'color', 'text', 'line', 'circle', 'rect', 'arc', 'polyline', 'fillcircle'].includes(kw);
+}
+```
+
+> ⚠️ **If you skip this step**, the parser will happily consume the next line's `line` / `circle` / etc. as a bare argument and error out with `unexpected token`.
+
+---
+
+## 4️⃣ Add the entry to `syn.json`
 
 Open `syn.json`. Add a new object to the `commands` array:
 
@@ -88,7 +143,6 @@ Open `syn.json`. Add a new object to the `commands` array:
 {
   "name": "polyline",
   "signature": "polyline x1 y1 x2 y2 x3 y3 ...",
-  "args": ["x1", "y1", "x2", "y2", "..."],
   "description": "Draw a connected chain of line segments through the given points. Requires an even number of coordinates (at least 4).",
   "example": "polyline 100 100 200 150 300 100 400 200"
 }
@@ -98,37 +152,17 @@ Open `syn.json`. Add a new object to the `commands` array:
 
 | Field | Required | Purpose |
 |-------|----------|---------|
-| `name` | ✅ | Command keyword. **Must match** the `case` label in `cad.js` exactly (lowercase). |
+| `name` | ✅ | Command keyword. **Must match** the `case` label / parser keyword exactly (lowercase). |
 | `signature` | ✅ | Shown in intellisense and help table. Use placeholder names. |
-| `args` | ⬜ | Array of argument names — informational only. |
 | `description` | ⬜ | Plain-English explanation shown in the help modal. |
 | `example` | ⬜ | One-liner example shown in help. Prefix `→` is added automatically. |
 
 **That's it.** Reload the page and:
+
 - The help modal (`? help` button) shows the new command.
 - Intellisense starts suggesting `polyline` as you type `poly…`.
 
-No changes to `script.js` are needed — everything reads from `SYNTAX.commands`.
-
----
-
-## 4️⃣ (Optional) Add to the quick-reference bar
-
-`index.html` has a footer strip showing commands. To include the new one:
-
-```html
-<div class="quick-ref">
-  <span>commands:</span>
-  <code>line x1 y1 x2 y2</code>
-  <code>circle cx cy r</code>
-  <code>rect x y w h</code>
-  <code>arc cx cy r start end</code>
-  <code>polyline x1 y1 x2 y2 ...</code>   <!-- 👈 new -->
-  <code>color #hex</code>
-  <code>clear</code>
-  <code>grid on/off</code>
-</div>
-```
+No `script.js` changes needed — help + intellisense read from `SYNTAX.commands`, which is `syn.json`.
 
 ---
 
@@ -137,7 +171,7 @@ No changes to `script.js` are needed — everything reads from `SYNTAX.commands`
 Paste this into the editor:
 
 ```
-color #6c9eff
+color blue
 polyline 100 100 200 200 300 100 400 200 500 100
 ```
 
@@ -147,28 +181,37 @@ You should see a zig-zag. Now try a bad input:
 polyline 1 2 3
 ```
 
-Status bar should show `⚠ line 1: polyline needs an even number of coordinates`.
+Status bar should show `⚠ line 1, col ...: polyline needs at least x1 y1 x2 y2` (or similar — the parser catches arity errors from your `throw`).
 
 ---
 
 ## 🧩 More examples
 
-### Example A — `fillCircle` (adds a new state modifier)
+### Example A — `fillcircle` (filled primitive)
 
-**`cad.js`** — add a method and case:
+**`parser.js`** — add `'fillcircle'` to the primitive list:
 
 ```javascript
-fillCircle(cx, cy, r) {
-  this.ctx.beginPath();
-  this.ctx.fillStyle = this.currentColor;
-  this.ctx.arc(cx, cy, Math.abs(r), 0, Math.PI * 2);
-  this.ctx.fill();
-}
+if (['line', 'circle', 'rect', 'arc', 'polyline', 'fillcircle'].includes(kw)) {
+```
 
-// in execute():
+**`cad.js`** — add to `drawShape()`:
+
+```javascript
+case 'fillcircle': {
+  const [cx, cy, r] = s.args;
+  ctx.beginPath(); ctx.arc(cx, cy, Math.abs(r), 0, Math.PI * 2); ctx.fill();
+  break;
+}
+```
+
+**`cad.js`** — add to `computeBounds()` (same as `circle`):
+
+```javascript
+case 'circle':
 case 'fillcircle':
-  if (args.length < 3) throw new Error('fillCircle needs cx cy r');
-  this.fillCircle(args[0], args[1], args[2]);
+  add(s.args[0] - s.args[2], s.args[1] - s.args[2]);
+  add(s.args[0] + s.args[2], s.args[1] + s.args[2]);
   break;
 ```
 
@@ -178,38 +221,41 @@ case 'fillcircle':
 {
   "name": "fillcircle",
   "signature": "fillcircle cx cy r",
-  "args": ["cx", "cy", "r"],
   "description": "Draw a filled circle using the current color.",
-  "example": "fillcircle 250 250 40"
+  "example": "fillcircle 200 200 40"
 }
 ```
 
-> 💡 Note: `name` is lowercase (`fillcircle`) to match the `case` label — intellisense is case-insensitive but the parser lowercases input.
+> 💡 Note: `name` is lowercase (`fillcircle`) to match the parser keyword — intellisense is case-insensitive but the parser lowercases input.
 
 ---
 
-### Example B — `text` (renders a label)
+### Example B — `text` (renders a label with quotes)
 
-**`cad.js`**:
+`text` is **already implemented** in the current codebase — but it's a good model for non-numeric commands.
+
+**`parser.js`** — its own statement branch (not the primitive list):
 
 ```javascript
-drawText(x, y, content, size = 16) {
-  this.ctx.fillStyle = this.currentColor;
-  this.ctx.font = `${size}px 'Fira Code', monospace`;
-  this.ctx.textBaseline = 'top';
-  this.ctx.fillText(content, x, y);
-}
-
-// in execute():
-case 'text': {
-  // text x y "hello world" [size]
-  const m = raw.match(/^text\s+(\S+)\s+(\S+)\s+"([^"]*)"(?:\s+(\S+))?$/i);
-  if (!m) throw new Error('text syntax: text x y "content" [size]');
-  const [, xs, ys, content, ss] = m;
-  this.drawText(Number(xs), Number(ys), content, ss ? Number(ss) : 16);
-  break;
+if (kw === 'text') {
+  state.i++;
+  const x = parseExpr(tokens, state);
+  const y = parseExpr(tokens, state);
+  const contentTok = tokens[state.i];
+  if (contentTok.type !== 'string') {
+    throw { line: t.line, col: t.col, message: 'text expects a quoted string' };
+  }
+  state.i++;
+  let size = null;
+  if (tokens[state.i].type === 'number') {
+    size = parseExpr(tokens, state);
+  }
+  stmts.push({ type: 'text', x, y, content: contentTok.value, size, line: t.line, col: t.col });
+  continue;
 }
 ```
+
+**`cad.js`** — `drawShape()` has a `text` case, `computeBounds()` estimates text bounds. `execute()` handles `st.type === 'text'` separately because `content` is a string, not a number.
 
 **`syn.json`**:
 
@@ -217,29 +263,43 @@ case 'text': {
 {
   "name": "text",
   "signature": "text x y \"content\" [size]",
-  "args": ["x", "y", "\"content\"", "size?"],
   "description": "Render a text label. Content must be in double quotes. Size defaults to 16.",
   "example": "text 100 100 \"Hello cadybara\" 20"
 }
 ```
 
-> 💡 This shows how to handle **non-numeric arguments** — use a regex on `raw` instead of `parts.map(Number)`.
+> 💡 Non-numeric commands need their **own parser branch** — they can't use the generic primitive path because `parts.map(Number)` would destroy the string content.
+
+---
+
+### Example C — `pico` (uses the palette)
+
+The palette is exposed as `window.PICO8`. A command that references it might look like:
+
+```javascript
+// in cad.js execute(), for a hypothetical 'colorbyname' command
+case 'colorbyname':
+  this.currentColor = window.normalizeColor(st.value);
+  break;
+```
+
+…but that's what `color` already does. So palette access is automatic — any new command that sets `this.currentColor` benefits from the PICO-8 names for free.
 
 ---
 
 ## ⚠️ Gotchas & best practices
 
-1. **`name` in `syn.json` must match the `case` in `cad.js`.** The parser lowercases the command, so `case 'polyline':` ↔ `"name": "polyline"`.
+1. **`name` in `syn.json` must match the keyword in `parser.js` and `cad.js`.** All three stay in sync. The parser lowercases, so use lowercase everywhere.
 
-2. **Never reuse `ctx.beginPath()` across draws.** Always call it inside your primitive.
+2. **Never reuse `ctx.beginPath()` across draws.** Always call it inside your `drawShape` case.
 
-3. **Respect `this.currentColor`** — otherwise `color #ff0000` will silently stop working for your command.
+3. **Respect `this.currentColor`** (or use `s.color` — the shape's resolved color) — otherwise `color blue` will silently stop working for your command.
 
-4. **Throw on bad input.** The engine catches it and reports `line N: message` — don't silently ignore.
+4. **Throw on bad input inside the parser**, not inside `drawShape`. Drawing errors are silent; parser errors show `⚠ line L, col C: ...` in the status bar.
 
-5. **`grid` is special.** It's re-executed via a second pass. If your command depends on grid state, read `this.showGrid` inside your draw method.
+5. **Update `computeBounds()`** — otherwise `⊡ fit` ignores your new shape and the export crop is wrong.
 
-6. **Variable-arity commands** (`polyline`, `text`, etc.) should parse `parts` (or regex `raw`) directly — don't rely on `args` since it may contain `NaN` for non-numeric tokens.
+6. **Variable-arity commands** (`polyline`, custom paths) — the generic primitive branch already handles them via the `while` loop; just add the keyword to both `parseProgram`'s list **and** `isStatementStart()`.
 
 7. **Keep `syn.json` valid JSON.** No trailing commas, no comments. Use `python3 -m json.tool syn.json` to validate.
 
@@ -247,7 +307,11 @@ case 'text': {
    ```bash
    python3 -m http.server
    ```
-   Opening `index.html` via `file://` will trigger the fallback syntax in `script.js`.
+   Opening `index.html` via `file://` triggers the hardcoded fallback syntax in `script.js`.
+
+9. **`#` is a comment** — hex colors must be quoted: `color "#ff004d"`. Use named colors (`color red`) or the `"#hex"` string form.
+
+10. **Layer colors override shape colors.** If a shape looks wrong, check whether the active layer (`layer walls color blue`) is overriding `color red`.
 
 ---
 
@@ -255,13 +319,15 @@ case 'text': {
 
 Before committing a new command, tick these off:
 
-- [ ] `drawXxx()` method added to `CadybaraEngine` (uses `this.currentColor`)
-- [ ] `case 'xxx':` added to `execute()` switch (with `break` and validation)
-- [ ] `syn.json` entry added (`name` matches the `case`, signature + description + example)
+- [ ] **Parser**: keyword added to the primitive list in `parseProgram()` — OR a dedicated statement branch for non-numeric args
+- [ ] **Parser**: keyword added to `isStatementStart()` (primitives only)
+- [ ] **cad.js**: `case 'xxx':` added to `drawShape()` (with `break`)
+- [ ] **cad.js**: `case 'xxx':` added to `computeBounds()` so `⊡ fit` and export work
+- [ ] **syn.json**: entry added (`name` matches the parser keyword, signature + description + example)
 - [ ] Tested happy path — shape renders correctly
-- [ ] Tested error path — bad input shows `⚠ line N: …` in status bar
-- [ ] Tested `color #hex` interaction — new primitive respects the active color
-- [ ] (optional) Added to `.quick-ref` in `index.html`
+- [ ] Tested error path — bad input shows `⚠ line L, col C: …` in status bar
+- [ ] Tested `color blue` interaction — new primitive respects the active color
+- [ ] Tested `⊡ fit` — new shape is included in the bounds
 - [ ] `syn.json` validates as JSON
 
 Happy extending! 🦫
