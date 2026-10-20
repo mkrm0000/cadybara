@@ -310,6 +310,27 @@ class CadybaraEngine {
       ctx.lineTo(worldRight, y);
     }
     ctx.stroke();
+
+    // axis line
+    ctx.strokeStyle = '#4a4b52';       // slightly brighter than grid
+    ctx.lineWidth = 1.2 / this.view.zoom;
+    ctx.beginPath();
+    // X axis (horizontal, y = 0)
+    ctx.moveTo(worldLeft, 0);
+    ctx.lineTo(worldRight, 0);
+    // Y axis (vertical, x = 0)
+    ctx.moveTo(0, worldTop);
+    ctx.lineTo(0, worldBottom);
+
+    ctx.stroke();
+
+    // ---- origin marker ----
+    const r = 2 / this.view.zoom;      // small dot, constant on-screen size
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+
   }
 
   drawShape(s) {
